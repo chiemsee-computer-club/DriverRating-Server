@@ -1,25 +1,34 @@
-var builder = WebApplication.CreateBuilder(args);
+using DriverRating.Data;
+using Microsoft.EntityFrameworkCore;
 
-// Add services to the container.
+namespace DriverRating;
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+public static class Program
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    public static void Main(string[] args)
+    {
+        var host = CreateHostBuilder(args).Build();
+        MigrateDatabase(host);
+        host.Run();
+    }
+
+    private static IHostBuilder CreateHostBuilder(string[] args) =>
+        Host.CreateDefaultBuilder(args)
+            .ConfigureLogging(logging => logging.AddConsole())
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>();
+            });
+    
+    private static void MigrateDatabase(IHost host)
+    {
+        using var scope = host.Services.GetService<IServiceScopeFactory>()!.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (db.Database.GetPendingMigrations().Any())
+        {
+            db.Database.Migrate();
+        }
+    }
+
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
